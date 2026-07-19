@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two Ways to Find a Number — Binary vs Interpolation Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+
+  :root{
+    --bg:#0a0e14;
+    --panel:#111823;
+    --panel-alt:#0d131c;
+    --line:#212b38;
+    --text:#dbe2ea;
+    --muted:#7a8699;
+    --binary:#4f8ff7;
+    --binary-dim:#4f8ff733;
+    --interp:#ffb020;
+    --interp-dim:#ffb02033;
+    --success:#3ddc97;
+    --danger:#ff5c72;
+    --mono:'IBM Plex Mono', monospace;
+    --body:'Inter', sans-serif;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, #14304f22, transparent),
+      radial-gradient(ellipse 900px 500px at 90% 10%, #4a2f0022, transparent),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{ background:var(--interp-dim); color:var(--text); }
+
+  .wrap{ max-width:1100px; margin:0 auto; padding:0 24px; }
+
+  /* ---------- HERO ---------- */
+
+  .hero{
+    padding:72px 0 40px;
+    border-bottom:1px solid var(--line);
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+  }
+
+  .eyebrow::before{
+    content:"";
+    width:8px;height:8px;border-radius:50%;
+    background:var(--success);
+    box-shadow:0 0 0 3px #3ddc9722;
+  }
+
+  h1{
+    font-family:var(--body);
+    font-weight:800;
+    font-size:clamp(32px,5vw,52px);
+    letter-spacing:-0.02em;
+    line-height:1.05;
+    max-width:820px;
+  }
+
+  h1 em{
+    font-style:normal;
+    background:linear-gradient(90deg,var(--binary),var(--interp));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  .hero-sub{
+    margin-top:16px;
+    max-width:620px;
+    color:var(--muted);
+    font-size:16.5px;
+  }
+
+  .hero-strip{
+    margin-top:40px;
+    display:flex;
+    gap:0;
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    font-family:var(--mono);
+  }
+
+  .hero-strip .cell{
+    flex:1;
+    padding:16px 18px;
+    border-right:1px solid var(--line);
+  }
+  .hero-strip .cell:last-child{ border-right:none; }
+  .hero-strip .cell .k{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; }
+  .hero-strip .cell .v{ font-size:20px; font-weight:600; margin-top:4px; }
+  .hero-strip .cell.b .v{ color:var(--binary); }
+  .hero-strip .cell.i .v{ color:var(--interp); }
+
+  /* ---------- SECTION HEADS ---------- */
+
+  section{ padding:56px 0; border-bottom:1px solid var(--line); }
+  section:last-of-type{ border-bottom:none; }
+
+  .section-head{ margin-bottom:28px; }
+  .section-head .tag{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.12em;
+  }
+  .section-head h2{
+    font-size:26px;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin-top:6px;
+  }
+  .section-head p{ color:var(--muted); margin-top:8px; max-width:600px; font-size:15px; }
+
+  /* ---------- CONTROLS ---------- */
+
+  .controls{
+    display:grid;
+    grid-template-columns:1fr 1fr auto auto;
+    gap:14px;
+    align-items:end;
+  }
+
+  .field label{
+    display:block;
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin-bottom:8px;
+  }
+
+  .field input{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:12px 14px;
+    border-radius:8px;
+    font-family:var(--mono);
+    font-size:14px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  .field input:focus{ border-color:var(--binary); }
+
+  button{
+    font-family:var(--body);
+    font-weight:600;
+    font-size:14px;
+    border:none;
+    border-radius:8px;
+    padding:12px 20px;
+    cursor:pointer;
+    transition:.15s transform, .15s opacity;
+    white-space:nowrap;
+  }
+  button:active{ transform:scale(.97); }
+  button:disabled{ opacity:.35; cursor:not-allowed; }
+
+  .btn-primary{ background:var(--text); color:var(--bg); }
+  .btn-primary:hover:not(:disabled){ opacity:.88; }
+
+  .btn-ghost{ background:transparent; color:var(--text); border:1px solid var(--line); }
+  .btn-ghost:hover:not(:disabled){ border-color:var(--muted); }
+
+  .error-msg{
+    margin-top:14px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--danger);
+    display:none;
+  }
+
+  /* ---------- RACE TRACK ---------- */
+
+  .stepper-bar{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:36px 0 30px;
+    font-family:var(--mono);
+  }
+
+  .stepper-bar .step-count{
+    font-size:13px;
+    color:var(--muted);
+    min-width:120px;
+  }
+
+  .stepper-bar .icon-btn{
+    width:38px;height:38px;
+    border-radius:8px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+    font-size:15px;
+    padding:0;
+  }
+  .stepper-bar .icon-btn:hover:not(:disabled){ border-color:var(--muted); }
+
+  .progress-track{
+    flex:1;
+    height:6px;
+    background:var(--panel);
+    border-radius:99px;
+    overflow:hidden;
+    border:1px solid var(--line);
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,var(--binary),var(--interp));
+    transition:width .25s ease;
+  }
+
+  .track-panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:22px 22px 20px;
+    margin-bottom:18px;
+  }
+
+  .track-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:18px;
+  }
+
+  .track-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:700;
+    font-size:15px;
+  }
+
+  .dot{ width:10px;height:10px;border-radius:50%; }
+  .dot.b{ background:var(--binary); }
+  .dot.i{ background:var(--interp); }
+
+  .track-status{
+    font-family:var(--mono);
+    font-size:12px;
+    padding:4px 10px;
+    border-radius:99px;
+    border:1px solid var(--line);
+    color:var(--muted);
+  }
+  .track-status.found{ color:var(--success); border-color:#3ddc9755; background:#3ddc9711; }
+  .track-status.miss{ color:var(--danger); border-color:#ff5c7255; background:#ff5c7211; }
+
+  .array-scroll{
+    overflow-x:auto;
+    padding-bottom:6px;
+  }
+
+  .badge-row, .cell-row{
+    display:flex;
+    gap:6px;
+    width:max-content;
+  }
+
+  .badge-row{ height:24px; margin-bottom:4px; }
+
+  .badge-slot{
+    width:52px;
+    position:relative;
+    flex-shrink:0;
+  }
+
+  .badge{
+    position:absolute;
+    bottom:0;
+    left:50%;
+    transform:translateX(-50%);
+    font-family:var(--mono);
+    font-size:10px;
+    font-weight:700;
+    padding:2px 6px;
+    border-radius:5px;
+    color:var(--bg);
+    white-space:nowrap;
+  }
+  .badge.L{ background:#8b98ab; }
+  .badge.H{ background:#8b98ab; }
+  .badge.P.b{ background:var(--binary); }
+  .badge.P.i{ background:var(--interp); }
+
+  .cell{
+    width:52px;
+    height:52px;
+    flex-shrink:0;
+    border-radius:8px;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--mono);
+    font-size:13px;
+    font-weight:500;
+    color:var(--muted);
+    transition:.2s;
+    position:relative;
+  }
+
+  .cell .idx{
+    position:absolute;
+    top:-16px;
+    font-size:9px;
+    color:var(--muted);
+    opacity:.6;
+  }
+
+  .cell.in-range{ color:var(--text); border-color:#2c3644; }
+  .cell.out-range{ opacity:.3; }
+  .cell.probe-b{ background:var(--binary-dim); border-color:var(--binary); color:var(--text); font-weight:700; }
+  .cell.probe-i{ background:var(--interp-dim); border-color:var(--interp); color:var(--text); font-weight:700; }
+  .cell.hit{ background:var(--success); border-color:var(--success); color:var(--bg); font-weight:700; }
+
+  .step-narrative{
+    margin-top:18px;
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--text);
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 16px;
+    line-height:1.7;
+  }
+  .step-narrative .formula{ color:var(--muted); display:block; margin-top:6px; font-size:12px; }
+  .step-narrative b{ color:inherit; }
+  .track-panel.b .step-narrative b.px{ color:var(--binary); }
+  .track-panel.i .step-narrative b.px{ color:var(--interp); }
+
+  /* ---------- LOG ---------- */
+
+  .log-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+
+  .log-panel h3{
+    font-size:13px;
+    font-family:var(--mono);
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  .log-list{
+    max-height:280px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    padding-right:4px;
+  }
+
+  .log-item{
+    font-family:var(--mono);
+    font-size:12.5px;
+    padding:9px 12px;
+    border-radius:7px;
+    border:1px solid var(--line);
+    color:var(--muted);
+    background:var(--panel-alt);
+    cursor:pointer;
+    transition:.12s;
+  }
+  .log-item:hover{ border-color:var(--muted); }
+  .log-item.active.b{ border-color:var(--binary); color:var(--text); background:var(--binary-dim); }
+  .log-item.active.i{ border-color:var(--interp); color:var(--text); background:var(--interp-dim); }
+
+  /* ---------- RESULTS TABLE ---------- */
+
+  table{ width:100%; border-collapse:collapse; font-family:var(--mono); font-size:13.5px; }
+  th{
+    text-align:left;
+    color:var(--muted);
+    text-transform:uppercase;
+    font-size:11px;
+    letter-spacing:.08em;
+    padding:10px 14px;
+    border-bottom:1px solid var(--line);
+  }
+  td{ padding:14px; border-bottom:1px solid var(--line); }
+  tr td:first-child{ display:flex; align-items:center; gap:9px; font-weight:600; }
+  .winner{ color:var(--success); font-weight:700; }
+
+  /* ---------- EXPLAIN CARDS ---------- */
+
+  .card-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+  }
+
+  .explain-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:24px;
+  }
+  .explain-card.b{ border-top:3px solid var(--binary); }
+  .explain-card.i{ border-top:3px solid var(--interp); }
+
+  .explain-card h3{ font-size:16px; margin-bottom:10px; }
+  .explain-card p{ color:var(--muted); font-size:14px; margin-bottom:14px; }
+  .explain-card .formula-box{
+    font-family:var(--mono);
+    font-size:13px;
+    background:var(--panel-alt);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+    color:var(--text);
+    margin-bottom:14px;
+  }
+  .explain-card ul{ list-style:none; }
+  .explain-card li{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--muted);
+    padding:6px 0;
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+  }
+  .explain-card li:first-of-type{ border-top:none; }
+  .explain-card li b{ color:var(--text); }
+
+  footer{
+    padding:36px 0 60px;
+    text-align:center;
+    color:var(--muted);
+    font-family:var(--mono);
+    font-size:12px;
+  }
+
+  @media (max-width:720px){
+    .controls{ grid-template-columns:1fr 1fr; }
+    .controls .btn-primary, .controls .btn-ghost{ grid-column:span 1; }
+    .log-grid, .card-grid{ grid-template-columns:1fr; }
+    h1{ font-size:30px; }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="eyebrow">Interactive algorithm lab</div>
+    <h1>Two ways to find a number in a <em>sorted</em> line.</h1>
+    <p class="hero-sub">
+      Binary search always cuts the array exactly in half. Interpolation search makes an educated
+      guess about where the target probably sits, the way you'd flip toward the back of a phone book
+      for a name starting with "T." Step through both, side by side, and see exactly where they agree
+      and where they diverge.
+    </p>
+
+    <div class="hero-strip">
+      <div class="cell b">
+        <div class="k">Binary search</div>
+        <div class="v">O(log n)</div>
+      </div>
+      <div class="cell i">
+        <div class="k">Interpolation search</div>
+        <div class="v">O(log log n)*</div>
+      </div>
+      <div class="cell">
+        <div class="k">*condition</div>
+        <div class="v" style="font-size:13px;color:var(--muted);font-weight:400;">uniformly distributed data</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <section>
+    <div class="section-head">
+      <div class="tag">Step 1</div>
+      <h2>Set up the search</h2>
+      <p>Enter a sorted, comma-separated array and a target value. Both algorithms will run against the exact same input.</p>
+    </div>
+
+    <div class="controls">
+      <div class="field">
+        <label for="arrayInput">Sorted array</label>
+        <input id="arrayInput" type="text" value="2,5,10,15,23,35,48,60,75,90,105,120,138,155,170">
+      </div>
+      <div class="field">
+        <label for="targetInput">Target value</label>
+        <input id="targetInput" type="number" value="105">
+      </div>
+      <button class="btn-primary" id="runBtn">Run comparison</button>
+      <button class="btn-ghost" id="randomBtn">Random target</button>
+    </div>
+    <div class="error-msg" id="errorMsg"></div>
+  </section>
+
+  <!-- STEP THROUGH -->
+  <section id="stepSection" style="display:none;">
+    <div class="section-head">
+      <div class="tag">Step 2</div>
+      <h2>Walk through it, one probe at a time</h2>
+      <p>Both algorithms advance together. Watch how interpolation search's probe formula jumps toward the target instead of always splitting the middle.</p>
+    </div>
+
+    <div class="stepper-bar">
+      <button class="icon-btn" id="prevBtn">◀</button>
+      <button class="icon-btn" id="playBtn">▶</button>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <button class="icon-btn" id="nextBtn">▶</button>
+      <div class="step-count" id="stepCount">Step 0 / 0</div>
+    </div>
+
+    <div class="track-panel b">
+      <div class="track-head">
+        <div class="track-title"><span class="dot b"></span> Binary Search</div>
+        <div class="track-status" id="bStatus">running</div>
+      </div>
+      <div class="array-scroll">
+        <div class="badge-row" id="bBadgeRow"></div>
+        <div class="cell-row" id="bCellRow"></div>
+      </div>
+      <div class="step-narrative" id="bNarrative">Press "Run comparison" to begin.</div>
+    </div>
+
+    <div class="track-panel i">
+      <div class="track-head">
+        <div class="track-title"><span class="dot i"></span> Interpolation Search</div>
+        <div class="track-status" id="iStatus">running</div>
+      </div>
+      <div class="array-scroll">
+        <div class="badge-row" id="iBadgeRow"></div>
+        <div class="cell-row" id="iCellRow"></div>
+      </div>
+      <div class="step-narrative" id="iNarrative">Press "Run comparison" to begin.</div>
+    </div>
+  </section>
+
+  <!-- LOGS -->
+  <section id="logSection" style="display:none;">
+    <div class="section-head">
+      <div class="tag">Step 3</div>
+      <h2>Full step log</h2>
+      <p>Every probe either algorithm made. Click any line to jump the visualization above to that moment.</p>
+    </div>
+    <div class="log-grid">
+      <div class="log-panel">
+        <h3><span class="dot b"></span> Binary search steps</h3>
+        <div class="log-list" id="bLogList"></div>
+      </div>
+      <div class="log-panel">
+        <h3><span class="dot i"></span> Interpolation search steps</h3>
+        <div class="log-list" id="iLogList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="resultsSection" style="display:none;">
+    <div class="section-head">
+      <div class="tag">Step 4</div>
+      <h2>Final tally</h2>
+      <p>Fewer comparisons means fewer probes needed to land on (or rule out) the target.</p>
+    </div>
+    <table>
+      <tr><th>Algorithm</th><th>Result index</th><th>Comparisons</th><th>Runtime</th></tr>
+      <tr>
+        <td><span class="dot b"></span>Binary Search</td>
+        <td id="bIndex">-</td><td id="bComp">-</td><td id="bTime">-</td>
+      </tr>
+      <tr>
+        <td><span class="dot i"></span>Interpolation Search</td>
+        <td id="iIndex">-</td><td id="iComp">-</td><td id="iTime">-</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- EXPLAIN -->
+  <section>
+    <div class="section-head">
+      <div class="tag">Reference</div>
+      <h2>How each one decides where to look</h2>
+    </div>
+    <div class="card-grid">
+      <div class="explain-card b">
+        <h3>Binary Search</h3>
+        <p>Always probes the exact middle of the remaining range, regardless of the values stored there.</p>
+        <div class="formula-box">mid = low + floor((high − low) / 2)</div>
+        <ul>
+          <li>Best case <b>O(1)</b></li>
+          <li>Average case <b>O(log n)</b></li>
+          <li>Worst case <b>O(log n)</b></li>
+          <li>Assumes about data <b>none — only sorted</b></li>
+        </ul>
+      </div>
+      <div class="explain-card i">
+        <h3>Interpolation Search</h3>
+        <p>Estimates the target's position using linear interpolation, like guessing a page in a dictionary.</p>
+        <div class="formula-box">pos = low + floor((target−arr[low]) × (high−low) / (arr[high]−arr[low]))</div>
+        <ul>
+          <li>Best case <b>O(1)</b></li>
+          <li>Average case <b>O(log log n)</b></li>
+          <li>Worst case <b>O(n)</b></li>
+          <li>Assumes about data <b>roughly uniform distribution</b></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>Search Algorithm Lab — everything above runs entirely in your browser.</footer>
+
+</div>
+
+<script>
+
+// ---------- ALGORITHMS THAT RECORD EVERY STEP ----------
+
+function traceBinarySearch(arr, target){
+  const steps = [];
+  let low = 0, high = arr.length - 1;
+  while(low <= high){
+    const mid = Math.floor((low + high) / 2);
+    let outcome, note;
+    if(arr[mid] === target){ outcome = 'found'; note = `arr[${mid}] = ${arr[mid]} equals target ${target}. Found it.`; }
+    else if(arr[mid] < target){ outcome = 'right'; note = `arr[${mid}] = ${arr[mid]} is less than ${target}, so discard the left half.`; }
+    else { outcome = 'left'; note = `arr[${mid}] = ${arr[mid]} is greater than ${target}, so discard the right half.`; }
+    steps.push({ low, high, pos: mid, outcome, note,
+      formula: `mid = floor((${low} + ${high}) / 2) = ${mid}` });
+    if(outcome === 'found') break;
+    if(outcome === 'right') low = mid + 1; else high = mid - 1;
+  }
+  if(steps.length === 0 || steps[steps.length-1].outcome !== 'found'){
+    steps.push({ low, high, pos: -1, outcome: 'notfound', note: `Range is now empty (low ${low} > high ${high}). Target is not in the array.`, formula: '' });
+  }
+  return steps;
+}
+
+function traceInterpolationSearch(arr, target){
+  const steps = [];
+  let low = 0, high = arr.length - 1;
+
+  while(low <= high && target >= arr[low] && target <= arr[high]){
+    if(low === high){
+      if(arr[low] === target){
+        steps.push({ low, high, pos: low, outcome:'found', note:`Only one element left. arr[${low}] = ${arr[low]} equals target ${target}. Found it.`, formula:'' });
+      } else {
+        steps.push({ low, high, pos: -1, outcome:'notfound', note:`Only one element left and arr[${low}] = ${arr[low]} ≠ ${target}. Not in the array.`, formula:'' });
+      }
+      break;
+    }
+    if(arr[high] === arr[low]){
+      steps.push({ low, high, pos:-1, outcome:'notfound', note:`arr[low] equals arr[high] — the interpolation formula would divide by zero. Stopping.`, formula:'' });
+      break;
+    }
+    const pos = low + Math.floor(((target - arr[low]) * (high - low)) / (arr[high] - arr[low]));
+    let outcome, note;
+    if(pos < low || pos > high){
+      steps.push({ low, high, pos:-1, outcome:'notfound', note:`Estimated position fell outside [${low}, ${high}]. Target is not in the array.`, formula:'' });
+      break;
+    }
+    if(arr[pos] === target){ outcome='found'; note = `arr[${pos}] = ${arr[pos]} equals target ${target}. Found it.`; }
+    else if(arr[pos] < target){ outcome='right'; note = `arr[${pos}] = ${arr[pos]} is less than ${target}, so probe again to the right.`; }
+    else { outcome='left'; note = `arr[${pos}] = ${arr[pos]} is greater than ${target}, so probe again to the left.`; }
+
+    steps.push({ low, high, pos, outcome, note,
+      formula: `pos = ${low} + floor((${target}−${arr[low]}) × (${high}−${low}) / (${arr[high]}−${arr[low]})) = ${pos}` });
+
+    if(outcome === 'found') break;
+    if(outcome === 'right') low = pos + 1; else high = pos - 1;
+  }
+
+  if(steps.length === 0){
+    steps.push({ low, high, pos:-1, outcome:'notfound', note:`Target ${target} is outside the array's value range from the start. Not in the array.`, formula:'' });
+  }
+  return steps;
+}
+
+// ---------- STATE ----------
+
+let arr = [];
+let target = null;
+let bSteps = [], iSteps = [];
+let currentStep = 0;
+let maxStep = 0;
+let playing = false;
+let playTimer = null;
+
+const $ = id => document.getElementById(id);
+
+// ---------- RENDERING ----------
+
+function renderTrack(prefix, steps, stepIdx, dotClass){
+  const cellRow = $(prefix + 'CellRow');
+  const badgeRow = $(prefix + 'BadgeRow');
+  const narrative = $(prefix + 'Narrative');
+  const status = $(prefix + 'Status');
+
+  const step = steps[Math.min(stepIdx, steps.length - 1)];
+  const isFinal = stepIdx >= steps.length - 1;
+  const { low, high, pos, outcome, note, formula } = step;
+
+  cellRow.innerHTML = '';
+  badgeRow.innerHTML = '';
+
+  arr.forEach((val, j) => {
+    const inRange = j >= low && j <= high && low <= high;
+    const cell = document.createElement('div');
+    cell.className = 'cell ' + (inRange ? 'in-range' : 'out-range');
+    if(j === pos && inRange){
+      cell.className += (outcome === 'found' && isFinal) ? ' hit' : (' probe-' + prefix);
+    }
+    cell.innerHTML = `<span class="idx">${j}</span>${val}`;
+    cellRow.appendChild(cell);
+
+    const slot = document.createElement('div');
+    slot.className = 'badge-slot';
+    let html = '';
+    if(j === low && low <= high) html += `<span class="badge L" style="bottom:14px;">L</span>`;
+    if(j === high && low <= high) html += `<span class="badge H">H</span>`;
+    if(j === pos && j !== low && j !== high && inRange) html += `<span class="badge P ${prefix}">${prefix==='b' ? 'M' : 'P'}</span>`;
+    slot.innerHTML = html;
+    badgeRow.appendChild(slot);
+  });
+
+  const stepNum = Math.min(stepIdx, steps.length - 1) + 1;
+  narrative.innerHTML = `<b>Step ${stepNum}:</b> ${note}` + (formula ? `<span class="formula">${formula}</span>` : '');
+
+  status.className = 'track-status';
+  if(outcome === 'found' && stepIdx >= steps.length - 1){ status.textContent = 'found ✓'; status.classList.add('found'); }
+  else if(outcome === 'notfound' && stepIdx >= steps.length - 1){ status.textContent = 'not found'; status.classList.add('miss'); }
+  else { status.textContent = 'searching…'; }
+}
+
+function renderAll(){
+  renderTrack('b', bSteps, currentStep, 'b');
+  renderTrack('i', iSteps, currentStep, 'i');
+
+  $('stepCount').textContent = `Step ${Math.min(currentStep, maxStep) + 1} / ${maxStep + 1}`;
+  $('progressFill').style.width = ((Math.min(currentStep, maxStep) + 1) / (maxStep + 1) * 100) + '%';
+  $('prevBtn').disabled = currentStep <= 0;
+  $('nextBtn').disabled = currentStep >= maxStep;
+
+  highlightLog('b', bSteps, currentStep);
+  highlightLog('i', iSteps, currentStep);
+}
+
+function buildLog(prefix, steps){
+  const list = $(prefix + 'LogList');
+  list.innerHTML = '';
+  steps.forEach((s, idx) => {
+    const item = document.createElement('div');
+    item.className = 'log-item ' + prefix;
+    item.dataset.idx = idx;
+    const label = s.outcome === 'found' ? 'FOUND' : s.outcome === 'notfound' ? 'END' : `probe → idx ${s.pos}`;
+    item.textContent = `#${idx+1}  low=${s.low} high=${s.high}  ${label}`;
+    item.addEventListener('click', () => { currentStep = idx; stopPlay(); renderAll(); });
+    list.appendChild(item);
+  });
+}
+
+function highlightLog(prefix, steps, stepIdx){
+  const list = $(prefix + 'LogList');
+  const clamped = Math.min(stepIdx, steps.length - 1);
+  [...list.children].forEach((el, idx) => {
+    el.classList.toggle('active', idx === clamped);
+    if(idx === clamped) el.scrollIntoView({ block:'nearest' });
+  });
+}
+
+function renderResults(){
+  const bFinal = bSteps[bSteps.length - 1];
+  const iFinal = iSteps[iSteps.length - 1];
+
+  $('bIndex').textContent = bFinal.outcome === 'found' ? bFinal.pos : 'not found';
+  $('iIndex').textContent = iFinal.outcome === 'found' ? iFinal.pos : 'not found';
+  $('bComp').textContent = bSteps.length;
+  $('iComp').textContent = iSteps.length;
+
+  const t0 = performance.now();
+  traceBinarySearch(arr, target);
+  const bTime = performance.now() - t0;
+  const t1 = performance.now();
+  traceInterpolationSearch(arr, target);
+  const iTime = performance.now() - t1;
+
+  $('bTime').textContent = bTime.toFixed(4) + ' ms';
+  $('iTime').textContent = iTime.toFixed(4) + ' ms';
+}
+
+// ---------- CONTROLS ----------
+
+function stopPlay(){
+  playing = false;
+  $('playBtn').textContent = '▶';
+  clearTimeout(playTimer);
+}
+
+function stepPlayLoop(){
+  if(!playing) return;
+  if(currentStep >= maxStep){ stopPlay(); return; }
+  currentStep++;
+  renderAll();
+  playTimer = setTimeout(stepPlayLoop, 1100);
+}
+
+$('runBtn').addEventListener('click', () => {
+  const errorMsg = $('errorMsg');
+  errorMsg.style.display = 'none';
+
+  const rawArr = $('arrayInput').value.split(',').map(s => s.trim()).filter(s => s.length);
+  const parsed = rawArr.map(Number);
+  const t = parseInt($('targetInput').value, 10);
+
+  if(parsed.some(n => Number.isNaN(n)) || parsed.length < 2){
+    errorMsg.textContent = 'Enter at least two valid, comma-separated numbers.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+  for(let k = 1; k < parsed.length; k++){
+    if(parsed[k] < parsed[k-1]){
+      errorMsg.textContent = 'The array must be sorted in ascending order.';
+      errorMsg.style.display = 'block';
+      return;
+    }
+  }
+  if(Number.isNaN(t)){
+    errorMsg.textContent = 'Enter a valid numeric target.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+
+  arr = parsed;
+  target = t;
+  bSteps = traceBinarySearch(arr, target);
+  iSteps = traceInterpolationSearch(arr, target);
+  currentStep = 0;
+  maxStep = Math.max(bSteps.length, iSteps.length) - 1;
+
+  buildLog('b', bSteps);
+  buildLog('i', iSteps);
+  renderAll();
+  renderResults();
+
+  $('stepSection').style.display = 'block';
+  $('logSection').style.display = 'block';
+  $('resultsSection').style.display = 'block';
+  stopPlay();
+});
+
+$('randomBtn').addEventListener('click', () => {
+  const rawArr = $('arrayInput').value.split(',').map(s => Number(s.trim())).filter(n => !Number.isNaN(n));
+  if(rawArr.length){
+    const idx = Math.floor(Math.random() * rawArr.length);
+    // 50/50: pick an existing value, or a value guaranteed absent
+    $('targetInput').value = Math.random() < 0.7 ? rawArr[idx] : (rawArr[rawArr.length-1] + 7);
+  }
+  $('runBtn').click();
+});
+
+$('prevBtn').addEventListener('click', () => { stopPlay(); if(currentStep > 0){ currentStep--; renderAll(); } });
+$('nextBtn').addEventListener('click', () => { stopPlay(); if(currentStep < maxStep){ currentStep++; renderAll(); } });
+$('playBtn').addEventListener('click', () => {
+  if(playing){ stopPlay(); return; }
+  if(currentStep >= maxStep) currentStep = 0;
+  playing = true;
+  $('playBtn').textContent = '⏸';
+  stepPlayLoop();
+});
+
+// run once on load with the default values
+$('runBtn').click();
+
+</script>
+</body>
+</html>
